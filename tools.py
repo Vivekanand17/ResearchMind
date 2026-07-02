@@ -1,15 +1,3 @@
-"""tools.py
-
-Production-grade tools for ResearchMind.
-
-- web_search: Tavily search with validation + safe error messages
-- scrape_url: robust scraping with timeouts, status checks, and HTML cleanup
-
-These tools are used by LangChain agents and must ALWAYS return a string
-(even on failure) so the agent never crashes due to tool exceptions.
-
-UI is not affected.
-"""
 
 from __future__ import annotations
 

@@ -1,15 +1,4 @@
-"""agents.py
 
-Production-quality Multi-Agent orchestration for ResearchMind.
-
-Goals:
-- Robust Mistral integration (429 backoff + retries)
-- Prompt size control
-- Defensive error handling (never crash Streamlit)
-- Keep exported symbols stable for app.py:
-  build_search_agent, build_reader_agent, generate_report, review_report,
-  writer_chain, critic_chain
-"""
 
 from __future__ import annotations
 
