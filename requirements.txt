@@ -4,6 +4,9 @@ langchain-core>=0.2.0
 langchain-community>=0.2.0
 langchain-openai>=0.1.0
 
+# Mistral (needed for: from langchain_mistralai import ChatMistralAI)
+langchain-mistralai>=0.2.0
+
 # OpenAI
 openai>=1.30.0
 
