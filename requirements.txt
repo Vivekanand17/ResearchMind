@@ -1,46 +1,48 @@
-# Core LLM + LangChain ecosystem
+# Streamlit
+streamlit>=1.46.0
+
+# Core LangChain
 langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-community>=0.2.0
-langchain-openai>=0.1.0
 
-# Mistral (needed for: from langchain_mistralai import ChatMistralAI)
+# Mistral
 langchain-mistralai>=0.2.0
 
-# OpenAI
-openai>=1.30.0
-
-# Tavily Search Tool
+# Tavily
 tavily-python>=0.3.0
+
+# OpenAI (optional if you're not using it)
+openai>=1.30.0
 
 # Web scraping
 beautifulsoup4>=4.12.0
 requests>=2.31.0
 lxml>=5.0.0
 
-# Environment variables
+# Environment
 python-dotenv>=1.0.0
 
-# Async support (important for agents/tools)
+# Async
 aiohttp>=3.9.0
 
-# Data handling (optional but useful in pipelines)
+# Data
 pandas>=2.0.0
 
-# Token counting / text utils
+# Token counting
 tiktoken>=0.6.0
 
-# Logging / debugging (optional but recommended)
+# Logging
 rich>=13.7.0
 
-# Retry + robustness
+# Retry
 tenacity>=8.2.0
 
-# JSON handling improvements
+# JSON
 orjson>=3.9.0
 
-# Typing support (helps in bigger projects)
+# Validation
 pydantic>=2.5.0
 
-# Optional (for advanced parsing / HTML cleanup)
+# HTML Parser
 html5lib>=1.1
