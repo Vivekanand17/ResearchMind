@@ -1,0 +1,28 @@
+{
+  "success": true,
+  "topic": "Artificial Intelligence",
+  "search_results": {
+    "summary": "...",
+    "sources": [
+      {
+        "title": "...",
+        "url": "...",
+        "snippet": "..."
+      }
+    ]
+  },
+  "scraped_content": "...",
+  "report": "...",
+  "review": {
+    "score": "9/10",
+    "strengths": [
+      "...",
+      "..."
+    ],
+    "improvements": [
+      "...",
+      "..."
+    ],
+    "verdict": "Excellent report."
+  }
+}

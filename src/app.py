@@ -1,6 +1,8 @@
 import streamlit as st
 import time
 
+import requests
+
 import agents as agents_mod
 import tools
 
@@ -404,6 +406,8 @@ with col_pipeline:
 
 
 # ── Run pipeline ──────────────────────────────────────────────────────────────
+BACKEND_URL = "https://researchmind-12vl.onrender.com/research"
+
 if run_btn:
     if not topic.strip():
         st.warning("Please enter a research topic first.")
@@ -417,126 +421,81 @@ if st.session_state.running and not st.session_state.done:
     results = {}
     topic_val = st.session_state.topic_input
 
-    def _extract_agent_content(obj: object) -> str:
+    def _format_api_search_structured(search_results: object) -> str:
+        """
+        Convert API response `search_results` into a markdown string that matches
+        the existing UI style.
+        """
         try:
-            if obj is None:
+            if not search_results:
                 return ""
-            if isinstance(obj, str):
-                return obj.strip()
-            if isinstance(obj, dict):
-                if "output" in obj and isinstance(obj["output"], str):
-                    return obj["output"].strip()
-                if "output_text" in obj and isinstance(obj["output_text"], str):
-                    return obj["output_text"].strip()
-                msgs = obj.get("messages")
-                if isinstance(msgs, list) and msgs:
-                    last = msgs[-1]
-                    content = getattr(last, "content", None)
-                    if isinstance(content, str):
-                        return content.strip()
-                    content_any = str(last)
-                    if content_any and content_any.strip():
-                        return content_any.strip()
-            if isinstance(obj, list) and obj:
-                last = obj[-1]
-                content = getattr(last, "content", None)
-                if isinstance(content, str):
-                    return content.strip()
-            s = str(obj).strip()
-            return s
+
+            # Expected from api/sample_response.json:
+            # {
+            #   "summary": "...",
+            #   "sources": [{"title": "...", "url": "...", "snippet": "..."}]
+            # }
+            if isinstance(search_results, dict):
+                summary = search_results.get("summary") or ""
+                sources = search_results.get("sources") or []
+
+                blocks = []
+                if summary:
+                    blocks.append(f"**Summary:** {summary}".strip())
+
+                for s in sources:
+                    if not isinstance(s, dict):
+                        continue
+                    title = (s.get("title") or "Untitled").strip()
+                    url = (s.get("url") or "").strip()
+                    snippet = (s.get("snippet") or "").strip()
+
+                    blocks.append(
+                        "### "
+                        + title
+                        + "\n"
+                        + ("- **URL:** " + url + "\n" if url else "- **URL:** N/A\n")
+                        + "- **Snippet:** " + (snippet or "N/A") + "\n"
+                    )
+
+                return "\n".join(blocks).strip()
+
+            return str(search_results).strip()
         except Exception:
             return ""
 
-    # ── Step 1: Search ──
-    with st.spinner("🔍  Search Agent is working…"):
+    with st.spinner("⚡  Running research via backend…"):
         try:
-            # Call the web_search tool directly to guarantee consistent Title/URL/Snippet output.
-            query = f"Find recent, reliable and detailed information about: {topic_val}"
-            # `@tool` decorated functions become StructuredTool objects (not directly callable).
-            tool_out = tools.web_search.invoke({"query": query})
-
-            # Convert "Title:/URL:/Snippet:" blocks into a structured markdown layout.
-            def _format_search_structured(text: str) -> str:
-                parts = [p.strip() for p in (text or "").split("\n----\n") if p.strip()]
-                if not parts:
-                    return text.strip()
-                blocks = []
-                for p in parts:
-                    title = ""
-                    url = ""
-                    snippet = ""
-                    for line in p.splitlines():
-                        if line.startswith("Title:"):
-                            title = line.replace("Title:", "", 1).strip()
-                        elif line.startswith("URL:"):
-                            url = line.replace("URL:", "", 1).strip()
-                        elif line.startswith("Snippet:"):
-                            snippet = line.replace("Snippet:", "", 1).strip()
-                    blocks.append(
-                        "### " + (title or "Untitled") + "\n"
-                        + ("- **URL:** " + (url or "N/A") + "\n" if url else "- **URL:** N/A\n")
-                        + "- **Snippet:** " + (snippet or "N/A") + "\n"
-                    )
-                return "\n".join(blocks).strip()
-
-            results["search"] = _format_search_structured(tool_out)
-            st.session_state.results = dict(results)
-        except Exception as e:
-            st.error(f"Search step failed: {e}")
-            results["search"] = f"[Search step exception] {e}"
-            st.session_state.results = dict(results)
-
-    st.rerun() if False else None   # keep inline for now
-
-    # ── Step 2: Reader ──
-    with st.spinner("📄  Reader Agent is scraping top resources…"):
-        try:
-            reader_agent = agents_mod.build_reader_agent()
-            rr_raw = agents_mod.safe_invoke_raw(
-                reader_agent,
-                {
-                    "messages": [
-                        (
-                            "user",
-                            f"Based on the following search results about '{topic_val}', "
-                            f"pick the most relevant URL and scrape it for deeper content.\n\n"
-                            f"Search Results:\n{results.get('search','')[:800]}",
-                        )
-                    ]
-                },
+            resp = requests.post(
+                BACKEND_URL,
+                json={"topic": topic_val},
+                timeout=180,
             )
-            extracted = _extract_agent_content(rr_raw)
-            if not extracted:
-                extracted = f"[Empty Reader output] Raw result:\n{repr(rr_raw)[:2000]}"
-            results["reader"] = extracted
-            st.session_state.results = dict(results)
-        except Exception as e:
-            st.error(f"Reader step failed: {e}")
-            results["reader"] = f"[Reader step exception] {e}"
-            st.session_state.results = dict(results)
+            resp.raise_for_status()
+            data = resp.json()
 
-    # ── Step 3: Writer ──
-    with st.spinner("✍️  Writer is drafting the report…"):
-        try:
-            research_combined = (
-                f"SEARCH RESULTS:\n{results.get('search','')}\n\n"
-                f"DETAILED SCRAPED CONTENT:\n{results.get('reader','')}"
-            )
-            results["writer"] = agents_mod.generate_report(topic_val, research_combined)
+            if not isinstance(data, dict) or not data.get("success", False):
+                raise RuntimeError(f"Backend returned unexpected response: {data}")
+
+            results["search"] = _format_api_search_structured(data.get("search_results"))
+            results["reader"] = data.get("scraped_content", "") or ""
+            results["writer"] = data.get("report", "") or ""
+
+            review = data.get("review", "") or ""
+            # Keep critic rendering compatible with existing st.markdown usage.
+            if isinstance(review, str):
+                results["critic"] = review
+            else:
+                # Stringify dict/object review
+                results["critic"] = str(review)
+
             st.session_state.results = dict(results)
         except Exception as e:
-            st.error(f"Writer step failed: {e}")
+            st.error(f"Backend call failed: {e}")
+            results["search"] = ""
+            results["reader"] = ""
             results["writer"] = ""
-            st.session_state.results = dict(results)
-
-    # ── Step 4: Critic ──
-    with st.spinner("🧐  Critic is reviewing the report…"):
-        try:
-            results["critic"] = agents_mod.review_report(results.get("writer", ""))
-            st.session_state.results = dict(results)
-        except Exception as e:
-            st.error(f"Critic step failed: {e}")
-            results["critic"] = ""
+            results["critic"] = f"[Backend call exception] {e}"
             st.session_state.results = dict(results)
 
     st.session_state.running = False

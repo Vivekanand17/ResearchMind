@@ -17,7 +17,13 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_mistralai import ChatMistralAI
 
-from tools import scrape_url, web_search
+# Support both:
+# - running from repo root with `uvicorn src.api:app` (sys.path hack adds src/)
+# - importing as a package in some environments
+try:
+    from tools import scrape_url, web_search
+except ModuleNotFoundError:  # pragma: no cover
+    from src.tools import scrape_url, web_search
 
 load_dotenv()
 
@@ -277,10 +283,11 @@ def _get_critic_chain() -> Any:
     return _critic_chain
 
 
-# Public symbols expected by app.py (kept for compatibility).
-# Important: keep them lazy to prevent import-time failures.
-writer_chain = None  # type: ignore
-critic_chain = None  # type: ignore
+# Public symbols expected by pipeline.py / app.py (kept for compatibility).
+# Initialize at import-time so callers can safely use `.invoke(...)`.
+# If env vars are missing, this will raise a controlled `ResearchPipelineError`.
+writer_chain = _get_writer_chain()
+critic_chain = _get_critic_chain()
 
 
 def generate_report(topic: str, research: str) -> str:

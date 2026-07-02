@@ -6,6 +6,10 @@ langchain>=0.2.0
 langchain-core>=0.2.0
 langchain-community>=0.2.0
 
+# Backend (FastAPI)
+fastapi>=0.110.0
+uvicorn>=0.27.0
+
 # Mistral
 langchain-mistralai>=0.2.0
 
