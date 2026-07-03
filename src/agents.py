@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import os
 from typing import Any, Dict, Optional, TypeVar, cast
+import os
+
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 from dotenv import load_dotenv
 from tenacity import (
@@ -57,13 +60,19 @@ def _is_truthy_env(name: str, default: str = "false") -> bool:
 
 
 def _make_llm() -> ChatMistralAI:
-    """
-    Lazy LLM construction to avoid import-time crashes in Streamlit.
-    """
-    api_key = os.getenv("MISTRAL_API_KEY") or ""
+  
+    api_key = os.getenv("MISTRAL_API_KEY")
+
+    if not api_key:
+        try:
+            import streamlit as st
+            api_key = st.secrets["MISTRAL_API_KEY"]
+        except Exception:
+            api_key = None
+
     if not api_key:
         raise ResearchPipelineError(
-            "Missing MISTRAL_API_KEY. Set it in your environment or .env file and restart the app."
+            
         )
 
     model = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
@@ -75,7 +84,6 @@ def _make_llm() -> ChatMistralAI:
         api_key=api_key,
         timeout=timeout_secs,
     )
-
 
 # -------- Rate limit + transient error handling --------
 try:
@@ -286,8 +294,18 @@ def _get_critic_chain() -> Any:
 # Public symbols expected by pipeline.py / app.py (kept for compatibility).
 # Initialize at import-time so callers can safely use `.invoke(...)`.
 # If env vars are missing, this will raise a controlled `ResearchPipelineError`.
-writer_chain = _get_writer_chain()
-critic_chain = _get_critic_chain()
+class LazyWriterChain:
+    def invoke(self, inputs):
+        return _get_writer_chain().invoke(inputs)
+
+
+class LazyCriticChain:
+    def invoke(self, inputs):
+        return _get_critic_chain().invoke(inputs)
+
+
+writer_chain = LazyWriterChain()
+critic_chain = LazyCriticChain()
 
 
 def generate_report(topic: str, research: str) -> str:
