@@ -1,6 +1,8 @@
 # ResearchMind · AI Research Agent
 
 Multi-agent pipeline (Streamlit UI) that searches the web, scrapes sources, writes a research report, and critiques it.
+FRONTEND = https://researchmind-vivtech-ai.streamlit.app/
+BACKEND = https://researchmind-api-kyj6.onrender.com
 
 ## 1) Setup
 
