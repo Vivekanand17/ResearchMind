@@ -406,7 +406,7 @@ with col_pipeline:
 
 
 # ── Run pipeline ──────────────────────────────────────────────────────────────
-BACKEND_URL = "https://researchmind-12vl.onrender.com/research"
+BACKEND_URL = "https://researchmind-api-kyj6.onrender.com/research"
 
 if run_btn:
     if not topic.strip():
